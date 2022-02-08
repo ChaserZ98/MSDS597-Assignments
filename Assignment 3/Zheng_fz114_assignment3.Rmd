@@ -1,0 +1,143 @@
+---
+title: "Assignment 3"
+author: "Feiyu Zheng (fz114)"
+date: "2022/2/8"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
+
+## (1) Use the Master data frame in the Lahman package to create a tibble with exactly the same variables as the *babynames* data frame (except the *sex*), and ordered in the same way. For year, use the year of birth. For name, use the first name (variable *nameFirst*). The final table should look like this (where *prop* is the proportion of names in a specific birth year)
+
+------------------------------------------
+
+ birthYear   nameFirst    n  prop
+
+-------------------------------------------
+
+```{r}
+# install.packages("Lahman") # install the packages
+library(Lahman) # import the packages
+
+master_t <- Master %>%
+  as_tibble() %>%
+  select(birthYear, nameFirst) %>%
+  group_by(birthYear, nameFirst) %>%
+  summarize(n = n()) %>%
+  mutate(prop = n / sum(n)) %>%
+  arrange(birthYear, desc(n))
+master_t
+```
+
+## (2) Create a subset of the tibble created in (1) with first names that start with the letter "Y".
+
+```{r}
+nameStartedWithY <- master_t %>%
+  filter(str_starts(nameFirst, "Y"))
+
+nameStartedWithY
+```
+
+## (3) Create a subset of the tibble created in (1) with first names that contain at least three vowels.
+
+```{r}
+nameContainsThreeVowels <- master_t %>%
+  filter(str_count(nameFirst, "[aeiou]") >= 3)
+nameContainsThreeVowels
+```
+
+## (4) In the Master dataframe, let us check whether the variable *birthYear* is consistent with the year in *birthDate*. Use a function in the *lubridate* package to extract the year from the *birthDate*. Call this variable *birthYear2*. In how many cases does *birthYear* have an "NA" entry? In how many cases does *birthYear2* have "NA" entry? In how many cases do both have "NA" entries? If you ignore all the cases with at least one "NA" entry (either in the *birthYear* or *birthYear2* variable), do all remaining cases match?
+
+```{r}
+masterWithBirthYear2 <- Master %>%
+  as_tibble() %>%
+  mutate(birthYear2 = year(birthDate))
+```
+
+```{r}
+birthYearNA <- masterWithBirthYear2 %>%
+  filter(is.na(birthYear)) %>%
+  nrow()
+birthYearNA
+```
+
+```{r}
+birthYear2NA <- masterWithBirthYear2 %>%
+  filter(is.na(birthYear2)) %>%
+  nrow()
+birthYear2NA
+```
+
+```{r}
+birthYearBothNA <- masterWithBirthYear2 %>%
+  filter(is.na(birthYear) & is.na(birthYear2)) %>%
+  nrow()
+birthYearBothNA
+```
+
+```{r}
+masterWithBirthYear2 %>%
+  filter(!is.na(birthYear) & !is.na(birthYear2)) %>%
+  nrow()
+
+masterWithBirthYear2 %>%
+  filter(!is.na(birthYear) & !is.na(birthYear2) & birthYear == birthYear2) %>%
+  nrow()
+```
+
+## (5) Create a data frame of players showing just the playerID, first name, last name, given name, and career total (meaning, summed over all the years and all stints) of games (that is, the G variable) according to the Fielding data frame. [Hint: Join the Fielding data frame with the Master data frame]
+
+```{r}
+# suppress the warning message of dplyr
+options(dplyr.summarize.inform = F)
+
+playerCareer <- inner_join(Master, Fielding, by = "playerID") %>%
+  group_by(playerID) %>%
+  summarize(playerID, nameFirst, nameLast, nameGiven, careerTotal = sum(G)) %>%
+  ungroup() %>%
+  distinct()
+
+playerCareer
+```
+
+## (6) Add a variable to your data frame obtained in (3) for full name by combining the first name and last name with a space between them.
+
+```{r}
+nameContainsThreeVowels
+```
+
+## (7) Using the data frames you have created, or starting from scratch, determine the five most popular first names in baseball among players who played at least 500 games. Plot the number of players with these five most popular first names over time (according to the birth year) with lines in a single plot. Be sure to make the plot look nice by using a title and changing the axis labels if necessary.
+
+```{r}
+top5PopularFirstName <- playerCareer %>%
+  filter(careerTotal >= 500) %>%
+  group_by(nameFirst) %>%
+  summarize(n = n()) %>%
+  arrange(desc(n)) %>%
+  head(5)
+
+top5PopularFirstName
+
+inner_join(Master, top5PopularFirstName, by = "nameFirst") %>%
+  group_by(nameFirst, birthYear) %>%
+  summarize(n = n()) %>%
+  ggplot(aes(x = birthYear, y = n, color = nameFirst)) + 
+  geom_line() + 
+  labs(
+    x = "Year",
+    y = "Number of Players",
+    color = "First Name",
+    title = "Number of Players with Five Most Poppular First Name Over Time"
+  ) + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
