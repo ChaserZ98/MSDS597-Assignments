@@ -1,0 +1,182 @@
+---
+title: "Assignment 1"
+author: "Feiyu Zheng (fz114)"
+date: "1/25/2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
+
+Note: In this assignment, I am using 2022 as "the current year" instead of 2017.
+
+## Install the package "babynames"
+
+```{r}
+#install.packages("babynames") # install the data package
+library(babynames) # load the data
+```
+
+Show the data
+
+```{r}
+babynames
+```
+
+## Plot the number of male and female babies named Taylor *by year*
+
+```{r}
+# filter the data
+babiesNamedTaylor <- babynames %>%
+  filter(name=="Taylor") %>%
+  mutate(sex = recode(sex, "F"="Female", "M" = "Male"))
+# show the data
+head(babiesNamedTaylor)
+
+# plot
+ggplot(babiesNamedTaylor) +
+  geom_line(mapping = aes(year, n, color=sex), size = 0.8) + 
+  labs(x = "Year", y = "Number", color = "Gender") +
+  ggtitle("Number of Male and Female Babies Named Taylor") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Answer the following questions, showing plots to substantiate your answers:
+
+### Is a 16 year old named Quinn more likely to be a boy or a girl?
+
+```{r}
+# filter the data
+babiesNamedQuinn16 <- babynames %>%
+  filter(name == "Quinn", year == (year(now()))-16) %>%
+  mutate(sex = recode(sex, "F" = "Female", "M" = "Male"))
+# show the data
+head(babiesNamedQuinn16)
+
+# visualization
+# compute the position of geom_text
+label_data = babiesNamedQuinn16 %>%
+  arrange(name, desc(sex)) %>%
+  mutate(ylabel_pos = cumsum(n) / sum(n), ylabel = n / sum(n)) %>%
+  group_by(sex, add = TRUE) %>%
+  mutate(ylabel = sum(ylabel)) %>%
+  slice(n())
+
+
+# draw the graph
+ggplot(babiesNamedQuinn16, aes(x = name, y = n, fill = sex)) +
+  geom_bar(stat = "identity", position = "fill", width = 0.3) +
+  geom_text(data = label_data,
+            aes(
+              y = ylabel_pos,
+              label = paste(round(ylabel * 100, 1), "%")),
+            vjust = 1.6,
+            color = "white",
+            size = 3.5) +
+  geom_hline(yintercept = 0.5) + 
+  scale_y_continuous(labels = scales::percent, expand = c(0, 0)) +
+  ggtitle("Gender Proportion of 16 Years Old Named Quinn") +
+  labs(x = "Name", y = "Proportion", fill = "Gender") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Based on the graph above, we can see that about 69.3% of 16-year-old children named Quinn are male. This shows that a 16-year-old child named Quinn is more likely to be a boy.
+
+### Is a 2 year old named Quinn more likely to be a boy or a girl?
+
+```{r}
+babiesNamedQuinn2 <- filter(babynames, name == "Quinn",
+                            year == (year(now())) - 2) # filter the data
+head(babiesNamedQuinn2) # show the data
+```
+
+Based on the above result, we see that there is no data for 2-year-old babies named Quinn. So instead of making guess based on this data, we can try to find some clues on the whole data by executing the code below.
+
+```{r}
+# filter the data
+babiesNamedQuinn <- babynames %>%
+  filter(name=="Quinn") %>%
+  mutate(sex = recode(sex, "F"="Female", "M" = "Male"))
+# show the data
+head(babiesNamedQuinn)
+
+# plot
+ggplot(babiesNamedQuinn) +
+  geom_line(mapping = aes((year(now()) - year), n, color=sex), size = 0.8) +
+  scale_x_continuous(breaks=seq(0, 110, 10)) +
+  labs(x = "Age", y = "Number", color = "Gender") +
+  ggtitle("Number of Male and Female Babies Named Quinn") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Based on the above graph, we can see that there is an increasing trend that for babies named Quinn under 15-year-old, female babies named Quinn are taking more and more proportion than male babies named Quinn as their ages fall. So based on this trend, I think a 2-year-old named Quinn is more likely to be a girl.
+
+### What is your best guess as to how old a woman named Susan is?
+
+```{r}
+# filter the data
+femaleBabiesNamedSusan <- babynames %>%
+  filter(name=="Susan", sex=="F")
+
+ # show the data
+head(femaleBabiesNamedSusan)
+
+# plot
+ggplot(femaleBabiesNamedSusan) +
+  geom_line(mapping=aes(x = (year(now()) - year), y = n)) + 
+  scale_x_continuous(breaks=seq(0, 150, 10)) +
+  labs(
+    x = "Age", 
+    y = "Number",
+    title = "Number of Female Babies Named Susan",
+    color = "Gender") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+# show the sorted data according to the amount of babies in descending order
+femaleBabiesNamedSusan <- femaleBabiesNamedSusan %>%
+  mutate(age = year(now()) - year)
+arrange(femaleBabiesNamedSusan, desc(n))
+
+# creating age groups
+ageBreaks <- seq(0, 100, 5)
+ageLabels <- c()
+for(age in ageBreaks){
+  if(age == 100){
+    ageBreaks <- append(ageBreaks, 200)
+    ageLabels <- append(ageLabels, paste(100, "+", sep = ""))
+    break
+  }
+  ageLabels <- append(ageLabels, paste(age, age + 4, sep = "-"))
+}
+
+femaleBabiesNamedSusan <- femaleBabiesNamedSusan %>%
+  mutate(ageGroup = cut((year(now()) - year), breaks = ageBreaks, right = F, labels = ageLabels)) %>%
+  group_by(ageGroup) %>%
+  summarise(n = sum(n)) %>%
+  mutate(max_prop = ifelse(n == max(n), "1", "0"))
+
+
+ggplot(femaleBabiesNamedSusan, aes(x = ageGroup, y = n / sum(n), fill = max_prop)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label = paste(round(n / sum(n) * 100, 1), "%", sep = "")), hjust = -0.1, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = c(0, 0), lim = c(0, 0.225)) +
+  scale_fill_manual(values = c("1" = "blue", "0" = "grey"), guide = "none") +
+  labs(
+    x = "Age Group",
+    y = "Proportion",
+    title = "Age Distribution of Women Named Susan",
+    subtitle = "65-69 Group Makes Up The Largest Proportion") + 
+  coord_flip() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Based on the results above, we can see that women named Susan with an age between 65 to 69 make up the largest proportion, 20.6%, of all women named Susan. Based on these data, we can make a best guess that the age of a woman named Susan is more likely around 65 to 69, or more precisely, 67 according to the sorted data above.
