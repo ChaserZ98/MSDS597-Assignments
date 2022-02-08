@@ -1,0 +1,171 @@
+---
+title: "Assignment 2"
+author: "Feiyu Zheng (fz114)"
+date: "2/4/2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
+
+## 1. Download the dataset on restaurant inspection in csv format.
+
+```{r}
+# read data from csv file and convert to tibble
+dataset <- as_tibble(read_csv("./NYRestaurantInspection2022.csv",
+                              na = c("", "N/A"), show_col_types = F))
+# show dataset
+dataset
+```
+
+### (1a) From a new data frame restricted to restaurants in Queens with cuisine equal to "Pizza".
+
+```{r}
+# filter restaurants in Queens with "Pizza" as cuisine
+queensPizzaRestaurants <- dataset %>%
+  filter(BORO == "Queens", `CUISINE DESCRIPTION` == "Pizza") %>%
+  as.data.frame()
+# show the data
+head(queensPizzaRestaurants, 10)
+```
+
+### (1b) What are the 5 most frequently inspected restaurants (use the variable "DBA" in the data frame)?
+
+```{r}
+frequentlyInspected <- queensPizzaRestaurants %>%
+  group_by(DBA) %>% # group by the name of restaurants
+  count(DBA, sort = TRUE) %>% # compute the frequency of inspection and sort in descending order
+  head(5) # choose the 5 most frequently inspected restaurants
+
+# show the data
+frequentlyInspected
+```
+
+As the above result shows, the 5 most frequently inspected restaurants are DOMINO'S, PAPA JOHN'S, PAPA JOHN'S PIZZA, LA BELLA PIZZA, and ROSA'S PIZZA.
+
+### (1c) On what dates has pizza parlor "SUSANO'S PIZZERIA & RESTAURANT" been inspected?
+
+```{r}
+susanosPizza <- queensPizzaRestaurants %>%
+  filter(DBA == "SUSANO'S PIZZERIA & RESTAURANT") %>% # filter by name
+  select(DBA, `INSPECTION DATE`) %>% # choose column DBA and INSPECTION DATE
+  distinct() %>% # only show distinct date
+  arrange(desc(mdy(`INSPECTION DATE`))) # sort the data by INSPECTION DATE in
+                                        # descending order
+# show the result
+susanosPizza
+```
+
+The above result lists the dates when the pizza parlor "SUSANO'S PIZZERIA & RESTAURANT" was inspected.
+
+## 2. The file "gapminder_2007_gini.tsv" is in the Files \> Lecture materials \> Lecture2_Jan31 folder. It is a subset of the 2007 Gapminder data merged with recent Gini coefficient data.
+
+```{r}
+# read the data from the tsv file
+gapminder2007 <- read_tsv("./gapminder_2007_gini.tsv", show_col_types = F)
+# show the data
+gapminder2007
+```
+
+### (2a) Create a plot to compare the distributions (e.g., central tendency, dispersion) of the Gini coefficient in different continents. (Hint: Use a boxplot)
+
+```{r}
+gapminder2007 %>%
+  ggplot(aes(x = continent, y = gini)) +
+  geom_boxplot() + # box plot
+  labs(
+    x = "Continent",
+    y = "Gini Coefficient",
+    title = "Distributions of the Gini Coefficient in Different Continents"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### (2b) Does the Gini coefficient appear to have any impact on the life expectancy in 2007? Explain your answer using a plot, classified by continents.
+
+We first draw the box plot of the life expectancy and then compare it with the above gini coefficient graph.
+
+```{r}
+gapminder2007 %>%
+  ggplot(aes(x = continent, y = lifeExp)) + 
+  geom_boxplot() + # box plot
+  labs(
+    x = "Continent",
+    y = "Life Expectancy",
+    title = "Distribution of the Life Expectancy in Different Continents"
+  ) + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Based the above box plot about life expectancy and the box plot in 2a about the Gini coefficient, we can see that the Gini coefficient can reflect the life expectancy. A low Gini coefficient may indicate a relative high life expectancy and when people's Gini coefficient tend to be equal, their life expectancy tend to be the same age as well.
+
+## 3. Using the original gapminder data frame, please generate a data frame with a new variable called gdp by multiplying the population size by the gdp per capita. To make those large numbers more understandable, please form an additional new variable called gdp_ratio equal to the gdp divided by the gdp of the United States in 2007. Find the median gdp_ratio by continent and year, and then plot the median gdp_ratio over time, distinguishing the continents. Please use both points and lines for the plot.
+
+### Install the original gapminder package and show the data.
+
+```{r include=FALSE}
+# install.packages("gapminder") # install the package
+library(gapminder) # import the package
+```
+
+```{r}
+gapminder # the original gapminder
+```
+
+### Add two columns: gdp and gdp_ratio.
+
+```{r}
+# convert tibble to data frame
+gapminderWithGDP <- as.data.frame(gapminder)
+# generate a new column called gdp
+gapminderWithGDP$gdp <- gapminderWithGDP$pop * gapminderWithGDP$gdpPercap
+# compute and get the gdp of the United States in 2007
+us2007GDP <- gapminderWithGDP %>%
+  filter(year == 2007, country == "United States") %>%
+  pull(gdp)
+
+# generate a new column called gdp_ratio
+gapminderWithGDP$gdp_ratio <- round(gapminderWithGDP$gdp / us2007GDP, 5)
+
+# show the sorted data by continent, year and gdp_ratio
+gapminderWithGDP %>%
+  arrange(continent, year, gdp_ratio) %>%
+  head(10)
+```
+
+### Compute the median gdp_ratio by continent and year and plot the data via points and lines.
+
+```{r}
+# suppress the warning message of dplyr
+options(dplyr.summarise.inform = F)
+
+# compute the median gdp_ratio by continent and year
+gapminderWithMedian <- gapminderWithGDP %>%
+  group_by(year, continent) %>%
+  summarize(median_gdp_ratio = median(gdp_ratio))
+
+# show the sorted data by continent and year
+gapminderWithMedian %>% arrange(continent, year)
+
+# plot the median gdp_ration over time in different continents
+gapminderWithMedian %>%
+  ggplot(aes(x = year, y = median_gdp_ratio, color = continent)) +
+  geom_line() + # line plot
+  geom_point() + # point plot
+  labs(
+    x = "Year",
+    y = "Median GDP Ratio",
+    color = "Continent",
+    title = "Change of Median GDP Ratio of Each Continent over Year"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
