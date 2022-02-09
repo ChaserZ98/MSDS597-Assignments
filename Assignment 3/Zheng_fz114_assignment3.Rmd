@@ -15,15 +15,18 @@ library(dplyr)
 library(tidyverse)
 library(lubridate)
 library(ggplot2)
+
+# suppress the warning message of dplyr
+options(dplyr.summarise.inform = F)
 ```
 
 ## (1) Use the Master data frame in the Lahman package to create a tibble with exactly the same variables as the *babynames* data frame (except the *sex*), and ordered in the same way. For year, use the year of birth. For name, use the first name (variable *nameFirst*). The final table should look like this (where *prop* is the proportion of names in a specific birth year)
 
-------------------------------------------
+------------------------------------------------------------------------
 
  birthYear   nameFirst    n  prop
 
--------------------------------------------
+------------------------------------------------------------------------
 
 ```{r}
 # install.packages("Lahman") # install the packages
@@ -98,8 +101,6 @@ masterWithBirthYear2 %>%
 ## (5) Create a data frame of players showing just the playerID, first name, last name, given name, and career total (meaning, summed over all the years and all stints) of games (that is, the G variable) according to the Fielding data frame. [Hint: Join the Fielding data frame with the Master data frame]
 
 ```{r}
-# suppress the warning message of dplyr
-options(dplyr.summarize.inform = F)
 
 playerCareer <- inner_join(Master, Fielding, by = "playerID") %>%
   group_by(playerID) %>%
