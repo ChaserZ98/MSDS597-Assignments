@@ -3,10 +3,10 @@ title: "Assignment 4"
 author: "Feiyu Zheng (fz114)"
 date: "2022/2/18"
 output:
+  pdf_document: default
   html_document:
     toc: true
     toc_float: true
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -22,16 +22,86 @@ options(dplyr.summarise.inform = F)
 
 ## (1) Create a new function that , given an 'lm' object, returns the top n residuals arranged in descending order according to their largest absolute values (but returns the residuals, not the absolute value of the residuals), where the default value for n is 5. The function should give a clear error message if n is larger than the number of residuals. Demonstrate that your functions works applying it to *mtcars.lm \<- lm(mpg \~ disp, data = mtcars)* first with no argument for n, then with n = 6, and then with n = 40 (error message expected)
 
-cars.lm \<- lm(mtcars\$mpg \~ mtcars\$disp)
+```{r}
+lm(mtcars$mpg ~ mtcars$disp) %>%
+  residuals() %>%
+  abs() %>%
+  sort(decreasing = T) %>%
+  head(10)
+```
 
-summary(cars.lm)
+### Create the function
 
 ```{r}
+top_n_residual <- function(obj, n = 5){
+  # get the number of residuals
+  rowNum <- obj %>%
+    residuals() %>%
+    length()
+  
+  if(n > rowNum){
+    # throws error message if argument n is larger than
+    # the number of residuals
+    stop(paste("The number of residuals is ",
+               rowNum,
+               " but argument n is ",
+               n,
+               " which is larger than the number of residuals.",
+               sep = ""))
+  }else{
+    result <- obj %>%
+      residuals() %>%
+      abs() %>% # absolute value
+      sort(decreasing = T) %>% # sort in descending order
+      head(n) # top n
+  }
+  result
+}
+```
 
+### Define the lm object
+
+```{r}
+mtcars.lm <- lm(mpg ~ disp, data = mtcars)
+```
+
+### With no argument for n
+
+```{r}
+top_n_residual(mtcars.lm)
+```
+
+### With n = 6
+
+```{r}
+top_n_residual(mtcars.lm, 6)
+```
+
+### With n = 40
+
+```{r, error=TRUE}
+top_n_residual(mtcars.lm, 40)
 ```
 
 ## (2) Split the gapminder by country and use map() to calculate, by country, the R-squared for the linear model lifeExp \~ log10(gdpPercap). Using ggplot2, make a set of boxplots of R-squared by continent.
 
 ```{r}
+library(gapminder) # import gapminder package
 
+gapminder %>%
+  split(.$country) %>% # split by country
+  # linear model
+  map(~lm(lifeExp ~ log10(gdpPercap), weights = pop, data = .)) %>%
+  map(summary) %>% # get summary
+  map_dbl("r.squared") %>% # get R-squared from summary
+  tibble(country = names(.), rsquared = .) %>% # convert to tibble
+  # add continent column corresponding to country
+  inner_join(distinct(select(gapminder, country, continent)), by = "country") %>%
+  ggplot(aes(continent, rsquared)) + 
+  geom_boxplot() + # boxplot
+  labs(
+    x = "Continent",
+    y = "R-squared",
+    title = "Boxplots of R-squared by continent") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
