@@ -20,158 +20,18 @@ library(ggplot2)
 options(dplyr.summarise.inform = F)
 ```
 
-## (1) Use the Master data frame in the Lahman package to create a tibble with exactly the same variables as the *babynames* data frame (except the *sex*), and ordered in the same way. For year, use the year of birth. For name, use the first name (variable *nameFirst*). The final table should look like this (where *prop* is the proportion of names in a specific birth year)
+## (1) Create a new function that , given an 'lm' object, returns the top n residuals arranged in descending order according to their largest absolute values (but returns the residuals, not the absolute value of the residuals), where the default value for n is 5. The function should give a clear error message if n is larger than the number of residuals. Demonstrate that your functions works applying it to *mtcars.lm \<- lm(mpg \~ disp, data = mtcars)* first with no argument for n, then with n = 6, and then with n = 40 (error message expected)
 
-------------------------------------------------------------------------
+cars.lm \<- lm(mtcars\$mpg \~ mtcars\$disp)
 
- birthYear   nameFirst    n  prop
-
-------------------------------------------------------------------------
+summary(cars.lm)
 
 ```{r}
-# install.packages("Lahman") # install the packages
-library(Lahman) # import the packages
 
-master_t <- Master %>%
-  as_tibble() %>%
-  select(birthYear, nameFirst) %>%
-  group_by(birthYear, nameFirst) %>%
-  summarize(n = n()) %>% # compute the number of people with same first name
-  mutate(prop = n / sum(n)) %>% # compute proportion
-  ungroup() %>% 
-  arrange(birthYear, desc(n)) # sort the result first by birthYear then by n in descending order
-
-master_t # show the result
 ```
 
-## (2) Create a subset of the tibble created in (1) with first names that start with the letter "Y".
+## (2) Split the gapminder by country and use map() to calculate, by country, the R-squared for the linear model lifeExp \~ log10(gdpPercap). Using ggplot2, make a set of boxplots of R-squared by continent.
 
 ```{r}
-nameStartedWithY <- master_t %>%
-  filter(str_starts(nameFirst, "Y")) # filter rows which first name starts with the letter Y
 
-nameStartedWithY # show the result
-```
-
-## (3) Create a subset of the tibble created in (1) with first names that contain at least three vowels.
-
-```{r}
-nameContainsThreeVowels <- master_t %>%
-  filter(str_count(nameFirst, "[aeiou]") >= 3) # filter rows which first name contains three vowels
-
-nameContainsThreeVowels # show the result
-```
-
-## (4) In the Master dataframe, let us check whether the variable *birthYear* is consistent with the year in *birthDate*. Use a function in the *lubridate* package to extract the year from the *birthDate*. Call this variable *birthYear2*. In how many cases does *birthYear* have an "NA" entry? In how many cases does *birthYear2* have "NA" entry? In how many cases do both have "NA" entries? If you ignore all the cases with at least one "NA" entry (either in the *birthYear* or *birthYear2* variable), do all remaining cases match?
-
-### Create *birthYear2* by extracting year from *birthDate*
-
-```{r}
-masterWithBirthYear2 <- Master %>%
-  as_tibble() %>%
-  mutate(birthYear2 = year(birthDate)) # create birthYear2 variable which stores the extracted year from birthDate
-
-masterWithBirthYear2 # show the result
-```
-
-### Count rows which *birthYear* is "NA"
-
-```{r}
-birthYearNA <- masterWithBirthYear2 %>%
-  filter(is.na(birthYear)) %>% # filter rows which birthYear is NA
-  nrow() # count total rows
-
-print(paste("There are ", birthYearNA, " cases which birthYear is NA.", sep = "")) # show the result
-```
-
-### Count rows which *birthYear2* is "NA"
-
-```{r}
-birthYear2NA <- masterWithBirthYear2 %>%
-  filter(is.na(birthYear2)) %>% # filter rows which birthYear2 is NA
-  nrow() # count total rows
-  
-print(paste("There are ", birthYear2NA, " cases which birthYear2 is NA.", sep = "")) # show the result
-```
-
-### Count rows which *birthYear* and *birthYear2* are both "NA"
-
-```{r}
-birthYearBothNA <- masterWithBirthYear2 %>%
-  filter(is.na(birthYear) & is.na(birthYear2)) %>% # filter rows which birthYear and birthYear2 are both NA
-  nrow() # count total rows
-
-print(paste("There are ", birthYearBothNA, " cases which birthYear and birthYear2 are both NA.", sep = "")) # show the result
-```
-
-### Ignore all the cases with at least one "NA" entry and indicate how many cases have matched *birthYear* and *birthYear2*
-
-```{r}
-casesWithoutNA <- masterWithBirthYear2 %>%
-  filter(!is.na(birthYear) & !is.na(birthYear2)) %>% # filter rows which birthYear and birthYear2 are both not NA
-  nrow() # count total rows
-
-print(paste("There are ", casesWithoutNA, " cases which birthYear and birthYear2 are both not NA.", sep = "")) # show the result
-
-matchedCases <- masterWithBirthYear2 %>%
-  filter(!is.na(birthYear) & !is.na(birthYear2) & birthYear == birthYear2) %>% # filter rows which birthYear and birthYear2 are both not NA and are equal to each other
-  nrow() # count total rows
-
-print(paste("There are ", casesWithoutNA, " cases which birthYear and birthYear2 are both not NA and are equal to each other.", sep = "")) # show the result
-
-if(casesWithoutNA == matchedCases){
-  print("All the remaining cases match.")
-} else{
-  print("There exists some unmatched cases in the remainin cases.")
-}
-```
-
-## (5) Create a data frame of players showing just the playerID, first name, last name, given name, and career total (meaning, summed over all the years and all stints) of games (that is, the G variable) according to the Fielding data frame. [Hint: Join the Fielding data frame with the Master data frame]
-
-```{r}
-playerCareer <- inner_join(Master, Fielding, by = "playerID") %>%
-  group_by(playerID) %>%
-  summarize(playerID, nameFirst, nameLast, nameGiven, careerTotal = sum(G)) %>% # compute the career total
-  ungroup() %>%
-  distinct() # clear redundant rows
-
-playerCareer # show the result
-```
-
-## (6) Add a variable to your data frame obtained in (3) for full name by combining the first name and last name with a space between them.
-
-```{r}
-Master %>%
-  as_tibble() %>%
-  mutate(fullName = paste(nameFirst, nameLast, sep = " ")) %>% # add the variable fullName by combining the first name and last name with a space between them
-  select(birthYear, nameFirst, fullName) %>%
-  arrange(birthYear, nameFirst) %>%
-  inner_join(nameContainsThreeVowels, by = c("birthYear" = "birthYear", "nameFirst" = "nameFirst")) # inner join with data frame from (3) to get the n and prop variable
-```
-
-## (7) Using the data frames you have created, or starting from scratch, determine the five most popular first names in baseball among players who played at least 500 games. Plot the number of players with these five most popular first names over time (according to the birth year) with lines in a single plot. Be sure to make the plot look nice by using a title and changing the axis labels if necessary.
-
-```{r}
-top5PopularFirstName <- playerCareer %>%
-  filter(careerTotal >= 500) %>% # filter rows which careerTotal is larger than 500
-  group_by(nameFirst) %>%
-  summarize(n = n()) %>% # count first name
-  arrange(desc(n)) %>% # sort by n in descending order
-  head(5) # get top 5 first names
-
-top5PopularFirstName # show the result
-
-inner_join(Master, top5PopularFirstName, by = "nameFirst") %>% # use inner join to get rows which has the five most popular first name
-  group_by(nameFirst, birthYear) %>%
-  summarize(n = n()) %>% # compute number of players over year
-  na.omit(birthYear) %>%
-  ggplot(aes(x = birthYear, y = n, color = nameFirst)) + 
-  geom_line() + # line plot
-  labs(
-    x = "Year",
-    y = "Number of Players",
-    color = "First Name",
-    title = "Number of Players with Five Most Poppular First Name Over Time"
-  ) + 
-  theme(plot.title = element_text(hjust = 0.5))
 ```
