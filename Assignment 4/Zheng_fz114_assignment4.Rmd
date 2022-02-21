@@ -22,14 +22,6 @@ options(dplyr.summarise.inform = F)
 
 ## (1) Create a new function that , given an 'lm' object, returns the top n residuals arranged in descending order according to their largest absolute values (but returns the residuals, not the absolute value of the residuals), where the default value for n is 5. The function should give a clear error message if n is larger than the number of residuals. Demonstrate that your functions works applying it to *mtcars.lm \<- lm(mpg \~ disp, data = mtcars)* first with no argument for n, then with n = 6, and then with n = 40 (error message expected)
 
-```{r}
-lm(mtcars$mpg ~ mtcars$disp) %>%
-  residuals() %>%
-  abs() %>%
-  sort(decreasing = T) %>%
-  head(10)
-```
-
 ### Create the function
 
 ```{r}
@@ -53,7 +45,8 @@ top_n_residual <- function(obj, n = 5){
       residuals() %>%
       abs() %>% # absolute value
       sort(decreasing = T) %>% # sort in descending order
-      head(n) # top n
+      head(n) %>% # top n
+      tibble(name = names(.), residuals = .) # convert result to tibble
   }
   result
 }
@@ -91,7 +84,7 @@ library(gapminder) # import gapminder package
 gapminder %>%
   split(.$country) %>% # split by country
   # linear model
-  map(~lm(lifeExp ~ log10(gdpPercap), weights = pop, data = .)) %>%
+  map(~lm(lifeExp ~ log10(gdpPercap), data = .)) %>%
   map(summary) %>% # get summary
   map_dbl("r.squared") %>% # get R-squared from summary
   tibble(country = names(.), rsquared = .) %>% # convert to tibble
