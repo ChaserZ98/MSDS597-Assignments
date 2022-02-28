@@ -20,25 +20,29 @@ library(ggplot2)
 options(dplyr.summarise.inform = F)
 ```
 
-## Problem 1
+# Problem 1
 
-### 1. Get the data in a single data frame. Create 3 data frames (or tibbles) from three files and combine the 3 data frames into one.
+## 1. Get the data in a single data frame. Create 3 data frames (or tibbles) from three files and combine the 3 data frames into one.
 
 ```{r}
-file1_t <- read.csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/The_Fellowship_Of_The_Ring.csv") %>% as_tibble()
+file1_t <- read.csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/The_Fellowship_Of_The_Ring.csv") %>%
+  as_tibble()
 file1_t
 
-file2_t <- read.csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/The_Two_Towers.csv") %>% as_tibble()
+file2_t <- read.csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/The_Two_Towers.csv") %>%
+  as_tibble()
 file2_t
 
-file3_t <- read.csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/The_Return_Of_The_King.csv") %>% as_tibble()
+file3_t <- read.csv("https://raw.githubusercontent.com/jennybc/lotr-tidy/master/data/The_Return_Of_The_King.csv") %>%
+  as_tibble()
 file3_t
 
+# bind three tibbles to one
 untidy_combined_t <- rbind(file1_t, file2_t, file3_t)
 untidy_combined_t
 ```
 
-### 2. Tidy the combined data frame by creating new variables "Gender" and "Words"
+## 2. Tidy the combined data frame by creating new variables "Gender" and "Words"
 
 ```{r}
 tidy_combined_t <- untidy_combined_t %>%
@@ -46,9 +50,9 @@ tidy_combined_t <- untidy_combined_t %>%
 tidy_combined_t
 ```
 
-### 3. Use the combined data frame to answer the following questions
+## 3. Use the combined data frame to answer the following questions
 
-#### How many words were spoken in each movie?
+### How many words were spoken in each movie?
 
 ```{r}
 tidy_combined_t %>%
@@ -56,7 +60,7 @@ tidy_combined_t %>%
   summarise(Words = sum(Words))
 ```
 
-#### How many words were spoken by each gender in total?
+### How many words were spoken by each gender in total?
 
 ```{r}
 tidy_combined_t %>%
@@ -64,7 +68,7 @@ tidy_combined_t %>%
   summarise(Words = sum(Words))
 ```
 
-#### How many words were spoken by each race in total?
+### How many words were spoken by each race in total?
 
 ```{r}
 tidy_combined_t %>%
@@ -72,7 +76,7 @@ tidy_combined_t %>%
   summarise(Words = sum(Words))
 ```
 
-### 4. Create a data frame with totals by race and movie, calling it *by_race_film*.
+## 4. Create a data frame with totals by race and movie, calling it *by_race_film*.
 
 ```{r}
 by_race_film <- tidy_combined_t %>%
@@ -82,17 +86,17 @@ by_race_film <- tidy_combined_t %>%
 by_race_film
 ```
 
-## Problem 2
+# Problem 2
 
-### 1. Split/group the gapminder data by country. For each country, fit an ARIMA(0, 0, 1) or MA(1) model to *lifeExp*, and produce a tibble that contains the country-wise values of AIC and BIC, two measures of goodness of model fit. Obtain a scatter plot of AIC versus BIC and comment.
+## 1. Split/group the gapminder data by country. For each country, fit an ARIMA(0, 0, 1) or MA(1) model to *lifeExp*, and produce a tibble that contains the country-wise values of AIC and BIC, two measures of goodness of model fit. Obtain a scatter plot of AIC versus BIC and comment.
 
-#### Import gapminder package
+### Import gapminder package
 
 ```{r}
 library(gapminder)
 ```
 
-#### Split the gapminder data by country and fit ARIMA(0, 0, 1) to *lifeExp*.
+### Split the gapminder data by country and fit ARIMA(0, 0, 1) to *lifeExp*.
 
 ```{r}
 gapminder_split <- gapminder %>%
@@ -101,10 +105,10 @@ gapminder_split_arima1 <- gapminder_split %>%
   map(., ~arima(.$lifeExp, order = c(0, 0, 1)))
 ```
 
-#### Produce a tibble that contains the country-wise values of AIC and BIC
+### Produce a tibble that contains the country-wise values of AIC and BIC
 
 ```{r}
-
+# create a function to get AIC and BIC from arima object
 getAIC_BIC <- function(obj){
   aic <- obj %>%
     map_dbl(AIC) %>%
@@ -121,16 +125,18 @@ aic_bic_1_t <- getAIC_BIC(gapminder_split_arima1)
 aic_bic_1_t
 ```
 
-#### Draw the scatter plot of AIC versus BIC.
+### Draw the scatter plot of AIC versus BIC.
 
 ```{r}
 aic_bic_1_t %>% ggplot(aes(x = AIC, y = BIC)) +
-  geom_point()
+  geom_point() + 
+  labs(title = "ARIMA(0, 0, 1) Scatter plot of AIC versus BIC") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-### 2. Now repeat the previous step for four other models: ARIMA(0, 0, 1), ARIMA(0, 0, 2), ARIMA(0, 0, 3), ARIMA(0, 1, 0), ARIMA(0, 1, 1), and in a single plot, show boxplots of AIC values for the five models. Based on the boxplot, which of these five models do you think fits the data best for most countries?
+## 2. Now repeat the previous step for four other models: ARIMA(0, 0, 1), ARIMA(0, 0, 2), ARIMA(0, 0, 3), ARIMA(0, 1, 0), ARIMA(0, 1, 1), and in a single plot, show boxplots of AIC values for the five models. Based on the boxplot, which of these five models do you think fits the data best for most countries?
 
-#### ARIMA(0, 0, 2)
+### ARIMA(0, 0, 2)
 
 ```{r}
 gapminder_split_arima2 <- gapminder_split %>%
@@ -140,10 +146,12 @@ aic_bic_2_t <- getAIC_BIC(gapminder_split_arima2)
 aic_bic_2_t
 
 aic_bic_2_t %>% ggplot(aes(x = AIC, y = BIC)) +
-  geom_point()
+  geom_point() + 
+  labs(title = "ARIMA(0, 0, 2) Scatter plot of AIC versus BIC") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-#### ARIMA(0, 0, 3)
+### ARIMA(0, 0, 3)
 
 ```{r}
 gapminder_split_arima3 <- gapminder_split %>%
@@ -153,10 +161,12 @@ aic_bic_3_t <- getAIC_BIC(gapminder_split_arima3)
 aic_bic_3_t
 
 aic_bic_3_t %>% ggplot(aes(x = AIC, y = BIC)) +
-  geom_point()
+  geom_point() + 
+  labs(title = "ARIMA(0, 0, 3) Scatter plot of AIC versus BIC") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-#### ARIMA(0, 1, 0)
+### ARIMA(0, 1, 0)
 
 ```{r}
 gapminder_split_arima4 <- gapminder_split %>%
@@ -166,10 +176,12 @@ aic_bic_4_t <- getAIC_BIC(gapminder_split_arima4)
 aic_bic_4_t
 
 aic_bic_4_t %>% ggplot(aes(x = AIC, y = BIC)) +
-  geom_point()
+  geom_point() + 
+  labs(title = "ARIMA(0, 1, 0) Scatter plot of AIC versus BIC") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-#### ARIMA(0, 1, 1)
+### ARIMA(0, 1, 1)
 
 ```{r}
 gapminder_split_arima5 <- gapminder_split %>%
@@ -179,12 +191,15 @@ aic_bic_5_t <- getAIC_BIC(gapminder_split_arima5)
 aic_bic_5_t
 
 aic_bic_5_t %>% ggplot(aes(x = AIC, y = BIC)) +
-  geom_point()
+  geom_point() + 
+  labs(title = "ARIMA(0, 1, 1) Scatter plot of AIC versus BIC") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-#### Boxplot
+### Boxplot
 
 ```{r}
+# add a variable called Model to identify each model
 aic_bic_1_t <- aic_bic_1_t %>%
   mutate(Model = "ARIMA(0, 0, 1)")
 aic_bic_2_t <- aic_bic_2_t %>%
@@ -196,6 +211,7 @@ aic_bic_4_t <- aic_bic_4_t %>%
 aic_bic_5_t <- aic_bic_5_t %>%
   mutate(Model = "ARIMA(0, 1, 1)")
 
+# merge five tibbles containing aic data into one
 merged_aic_bic_t <- aic_bic_1_t %>%
   merge(aic_bic_2_t, all = T) %>%
   merge(aic_bic_3_t, all = T) %>% 
@@ -204,21 +220,24 @@ merged_aic_bic_t <- aic_bic_1_t %>%
 
 merged_aic_bic_t %>%
   ggplot(aes(x = Model, y = AIC)) + 
-  geom_boxplot()
+  geom_boxplot() +
+  labs(title = "Boxplots of AIC Values For The Five Models") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
-### 3. Filter the data only for continent Europe. For the best model identified in step 2, create a tibble showing the country-wise model parameters (moving average coefficients) and their standard errors using the broom package.
+Based on the boxplot, we can see that AIC values of most countries fitted using ARIMA(0, 1, 1) are much lower than other models. This indicates the model ARIMA(0, 1, 1) fits the data best.
 
-#### Filter the data only for continent Europe
+## 3. Filter the data only for continent Europe. For the best model identified in step 2, create a tibble showing the country-wise model parameters (moving average coefficients) and their standard errors using the broom package.
+
+### Filter the data only for continent Europe
 
 ```{r}
 gapminder_Europe <- gapminder %>%
   filter(continent == "Europe")
-
 ```
 
-#### Fit the data with ARIMA(0, 1, 1)
+### Fit the data with ARIMA(0, 1, 1)
 
 ```{r}
 gapminder_Europe_split <- gapminder_Europe %>%
@@ -227,7 +246,7 @@ gapminder_Europe_split_arima <- gapminder_Europe_split %>%
   map(., ~arima(.$lifeExp, order = c(0, 1, 1)))
 ```
 
-#### Create the tibble
+### Create the tibble
 
 ```{r}
 tidyList <- gapminder_Europe_split_arima %>%
