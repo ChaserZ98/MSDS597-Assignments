@@ -1,0 +1,302 @@
+---
+title: "Assignment 5"
+author: "Feiyu Zheng (fz114)"
+date: "2022/2/21"
+output:
+  pdf_document: default
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(tidytext)
+library(textdata)
+
+# suppress the warning message of dplyr
+options(dplyr.summarise.inform = F)
+```
+
+# Problem 1
+
+## 1. Find the gutenberg IDs of Treasure Island and Kidnapped by Robert Louis Stevenson using the gutenberg_metadata data frame avaiable in the gutenberg package.
+
+### Import the gutenbergr package
+
+```{r}
+# install.packages("gutenbergr") # install gutenbergr package
+
+library(gutenbergr) # import gutenbergr package
+```
+
+### Find the gutenberg IDs of two books
+
+```{r}
+gutenberg_metadata %>%
+  filter((title == "Treasure Island" | title == "Kidnapped")
+         & author == "Stevenson, Robert Louis")
+```
+
+## 2. Download the texts of these two books from the gutenberg package.
+
+### Download Treasure Island text
+
+```{r}
+treasureIslandText <- gutenberg_download(120)
+treasureIslandText
+```
+
+### Download Kidnapped Text
+
+```{r}
+kidnappedText <- gutenberg_download(421)
+kidnappedText
+```
+
+## 3. Find the 10 most common words (that are not stop words) in each novel.
+
+### Treasure Island top 10 most common words
+
+```{r}
+tidyTreasureIslandWords <- treasureIslandText %>%
+  unnest_tokens(word, text) %>% # convert line to word
+  anti_join(stop_words) # exclude stop words
+
+top10TreasureIslandWords <- tidyTreasureIslandWords %>%
+  count(word, sort = TRUE) %>% # count word and sort in descending
+  head(10) # show top 10
+
+# visualization
+top10TreasureIslandWords %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + 
+  labs(x = NULL, title = "Top 10 Most Common Words in Treasure Island") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+### Kidnapped top 10 most common words
+
+```{r}
+tidyKidnappedWords <- kidnappedText %>%
+  unnest_tokens(word, text) %>% # convert line to word
+  anti_join(stop_words) # exclude stop words
+  
+
+top10KidnappedWords <- tidyKidnappedWords %>%
+  count(word, sort = TRUE) %>% # count word and sort in descending order
+  head(10) # show top 10
+
+# visualization
+top10KidnappedWords %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + 
+  labs(x = NULL, title = "Top 10 Most Common Words in Kidnapped") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## 4. 
+
+### (i) Create a visualization on the similarity/dissimilarity between the proportions of the non stop words (i.e., words that are not stop words) in the two books, and calculate the correlation between them.
+
+#### Visualization
+
+```{r}
+frequency <- bind_rows(
+  mutate(tidyTreasureIslandWords, title = "Treasure Island"),
+  mutate(tidyKidnappedWords, title = "Kidnapped")) %>%
+  mutate(word = str_extract(word, "[a-z]+")) %>%
+  count(title, word) %>%
+  group_by(title) %>%
+  mutate(proportion = n / sum(n)) %>%
+  select(-n) %>%
+  pivot_wider(names_from = "title", values_from = "proportion")
+frequency
+frequency %>%
+  ggplot(aes(x = `Kidnapped`, y = `Treasure Island`)) +
+  geom_abline(color = "red", lty = 2, lwd = 2) + 
+  geom_point(color = "grey") + 
+  geom_text(aes(label = word), check_overlap = TRUE) +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+#### Correlation
+
+```{r}
+frequency %>%
+  filter(!(`Kidnapped` == "NA" | `Treasure Island` == "NA")) %>%
+  select(, 2:3) %>%
+  cor()
+```
+
+### (ii) Find two words that appear with a high frequency in Kidnapped but not in Treasure Island.
+
+Based on the above visualization, we can find that "ye" and "alan" have a high frequency in Kidnapped but not in Treasure Island.
+
+### (iii) Find two words that appear with a high frequency in Treasure Island but not in Kidnapped.
+
+Based on the above visualization, we can find that "doctor" and "cap" have a high frequency in Treasure Island but not in Kidnapped.
+
+### (iv) Find two words that appear with a high frequency in both novels.
+
+Based on the above visualization, we can find that "time" and "cried" have a high frequency in both novels.
+
+## 5. Find the 10 most common bigrams in Treasure Island that do not include stop words.
+
+```{r}
+top10TreasureIslandBigrams <- treasureIslandText %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  filter(bigram != "NA") %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!(word1 %in% stop_words$word)) %>%
+  filter(!(word2 %in% stop_words$word)) %>%
+  unite(bigram, word1, word2, sep = " ") %>%
+  count(bigram, sort = TRUE) %>%
+  head(10)
+top10TreasureIslandBigrams
+```
+
+## 6. Plot the sentiment for the two books using the bing lexicon, using 100 words as the unit of length.
+
+### Define the lexicon and the unit of length
+
+```{r}
+unitLength <- 100
+bingLexicon <- get_sentiments("bing")
+```
+
+### Plot the sentiment for Treasure Island
+
+```{r}
+treasureIslandText %>%
+  mutate(
+    linenumber = row_number(),
+    part = cumsum(
+      str_detect(
+        text,
+        regex("^PART \\w+--", ignore_case = TRUE))),
+    chapter = cumsum(
+      str_detect(
+        text,
+        regex("^\\d+$")))) %>%
+  unnest_tokens(word, text) %>%
+  mutate(index = row_number() %/% unitLength) %>%
+  anti_join(stop_words) %>%
+  inner_join(bingLexicon) %>%
+  count(index, sentiment) %>%
+  pivot_wider(names_from = "sentiment", values_from = "n") %>%
+  mutate(sentiment = positive - negative) %>%
+  ggplot(aes(index, sentiment)) +
+  geom_bar(stat = "identity") +
+  geom_smooth() + 
+  labs(title = "Treasure Island Sentiment Analysis", subtitle = "Lexicon: bing\nUnit of Length: 100 words") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5))
+```
+
+### Plot the sentiment for Kidnapped
+
+```{r}
+kidnappedText %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(
+      str_detect(
+        text,
+        regex("^CHAPTER [\\divxlc]", ignore_case = TRUE)))) %>%
+  unnest_tokens(word, text) %>%
+  mutate(index = row_number() %/% unitLength) %>%
+  anti_join(stop_words) %>%
+  inner_join(bingLexicon) %>%
+  count(index, sentiment) %>%
+  pivot_wider(names_from = "sentiment", values_from = "n") %>%
+  mutate(sentiment = positive - negative) %>%
+  ggplot(aes(index, sentiment)) +
+  geom_bar(stat = "identity") +
+  geom_smooth() +
+  labs(title = "Kidnapped Sentiment Analysis", subtitle = "Lexicon: bing\nUnit of Length: 100 words") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5))
+```
+
+# Problem 2
+
+## 1. For the AssociatedPress dataset provided by the topicmodels packages, create a three-topic LDA model using the "Gibbs" method instead of the default VEM method. List the top 10 terms in each of the three topics in the fitted model, and suggest what these topics might be.
+
+### Install and import tm and topicmodels packages
+
+```{r}
+# install tm and topicmodels packages
+# install.packages("tm")
+# install.packages("topicmodels")
+
+# import tm and topicmodels packages
+library(tm)
+library(topicmodels)
+```
+
+### Import the AssociatedPress dataset from topicmodels package
+
+```{r}
+data("AssociatedPress", package = "topicmodels")
+AssociatedPress
+```
+
+### Fit the dataset with three-topic LDA model using the Gibbs method
+
+```{r}
+ap_lda <- LDA(AssociatedPress, k = 3, method = "Gibbs")
+ap_lda
+```
+
+### Tidy the LDA output
+
+```{r}
+ap_topics <- tidy(ap_lda)
+ap_topics
+```
+
+## List the top 10 terms in each of the three topics in the fitted model
+
+```{r}
+ap_topics %>%
+  group_by(topic) %>%
+  mutate(beta_rank = min_rank(desc(beta))) %>%
+  filter(beta_rank <= 10) %>%
+  ungroup() %>%
+  arrange(beta_rank) %>%
+  mutate(topic = recode(topic, "1" = "Topic 1", "2" = "Topic 2", "3" = "Topic 3")) %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(beta, term, fill = topic)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~topic, scales = "free") +
+  labs(
+    title = "Top 10 Terms In Each Of The Three Topics",
+    subtitle = "Dataset: AssociatedPress\nLDA Method: Gibbs") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5))
+```
+
+## 2. Find the documents (by numbers) for which there is maximum uncertainty about the classification, with the maximum probability of being assigned to a group not exceeding 0.35.
+
+```{r}
+ap_lda %>%
+  tidy(matrix = "gamma") %>%
+  group_by(document) %>%
+  top_n(1) %>%
+  ungroup() %>%
+  filter(gamma <= 0.35)
+```
