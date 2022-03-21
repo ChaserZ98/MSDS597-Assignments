@@ -1,7 +1,7 @@
 ---
 title: "Assignment 6"
 author: "Feiyu Zheng (fz114)"
-date: "2022/2/21"
+date: "2022/3/20"
 output:
   pdf_document: default
   html_document:
@@ -65,7 +65,10 @@ kidnappedText
 ```{r}
 tidyTreasureIslandWords <- treasureIslandText %>%
   unnest_tokens(word, text) %>% # convert line to word
-  anti_join(stop_words) # exclude stop words
+  anti_join(stop_words) %>% # exclude stop words
+  mutate(word = str_extract(word, "[a-z]+")) %>% # exclude non-letter words
+  anti_join(stop_words) %>% # exclude stop words again
+  filter(!is.na(word)) # filter out empty value
 
 top10TreasureIslandWords <- tidyTreasureIslandWords %>%
   count(word, sort = TRUE) %>% # count word and sort in descending
@@ -87,7 +90,10 @@ top10TreasureIslandWords %>%
 ```{r}
 tidyKidnappedWords <- kidnappedText %>%
   unnest_tokens(word, text) %>% # convert line to word
-  anti_join(stop_words) # exclude stop words
+  anti_join(stop_words) %>% # exclude stop words
+  mutate(word = str_extract(word, "[a-z]+")) %>% # exclude non-letter words
+  anti_join(stop_words) %>% # exclude stop words again
+  filter(!is.na(word)) # filter out empty value
   
 
 top10KidnappedWords <- tidyKidnappedWords %>%
@@ -166,7 +172,7 @@ top10TreasureIslandBigrams <- treasureIslandText %>%
 top10TreasureIslandBigrams
 ```
 
-## 6. Plot the sentiment for the two books using the bing lexicon, using 100 words as the unit of length.
+## 6. Plot the sentiment for the two books using the bing lexicon, using 100 lines as the unit of length.
 
 ### Define the lexicon and the unit of length
 
@@ -190,7 +196,7 @@ treasureIslandText %>%
         text,
         regex("^\\d+$")))) %>%
   unnest_tokens(word, text) %>%
-  mutate(index = row_number() %/% unitLength) %>%
+  mutate(index = linenumber %/% unitLength) %>%
   anti_join(stop_words) %>%
   inner_join(bingLexicon) %>%
   count(index, sentiment) %>%
@@ -199,7 +205,7 @@ treasureIslandText %>%
   ggplot(aes(index, sentiment)) +
   geom_bar(stat = "identity") +
   geom_smooth() + 
-  labs(title = "Treasure Island Sentiment Analysis", subtitle = "Lexicon: bing\nUnit of Length: 100 words") +
+  labs(title = "Treasure Island Sentiment Analysis", subtitle = "Lexicon: bing\nUnit of Length: 100 lines") +
   theme(
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
@@ -216,7 +222,7 @@ kidnappedText %>%
         text,
         regex("^CHAPTER [\\divxlc]", ignore_case = TRUE)))) %>%
   unnest_tokens(word, text) %>%
-  mutate(index = row_number() %/% unitLength) %>%
+  mutate(index = linenumber %/% unitLength) %>%
   anti_join(stop_words) %>%
   inner_join(bingLexicon) %>%
   count(index, sentiment) %>%
@@ -225,7 +231,7 @@ kidnappedText %>%
   ggplot(aes(index, sentiment)) +
   geom_bar(stat = "identity") +
   geom_smooth() +
-  labs(title = "Kidnapped Sentiment Analysis", subtitle = "Lexicon: bing\nUnit of Length: 100 words") +
+  labs(title = "Kidnapped Sentiment Analysis", subtitle = "Lexicon: bing\nUnit of Length: 100 lines") +
   theme(
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
@@ -237,7 +243,7 @@ kidnappedText %>%
 
 ### Install and import tm and topicmodels packages
 
-```{r}
+```{r message=FALSE}
 # install tm and topicmodels packages
 # install.packages("tm")
 # install.packages("topicmodels")
@@ -290,13 +296,24 @@ ap_topics %>%
     plot.subtitle = element_text(hjust = 0.5))
 ```
 
+The topic with terms like "percent", "year", "million", "company", etc., might be about economy.
+
+The topic with terms like "i", "people", "police", "court", "city", etc., might be about law or lawsuit.
+
+The topic with terms like "president", "government", "soviet", "military", etc., might be about politics or military.
+
+(Please note the topic number might not be cohere with the terms due to the fitting process so I am using terms to represent the topic instead of the topic number)
+
 ## 2. Find the documents (by numbers) for which there is maximum uncertainty about the classification, with the maximum probability of being assigned to a group not exceeding 0.35.
 
 ```{r}
 ap_lda %>%
   tidy(matrix = "gamma") %>%
   group_by(document) %>%
-  top_n(1) %>%
+  slice_max(gamma, n = 1,
+            with_ties = FALSE) %>% # select one row with the largest gamma
   ungroup() %>%
-  filter(gamma <= 0.35)
+  filter(gamma <= 0.35) # find those with the largest gamma less than or equal to 0.35
 ```
+
+The documents listed above are those for which there is maximum uncertainty about the classification.
