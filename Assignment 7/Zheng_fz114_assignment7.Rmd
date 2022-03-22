@@ -1,0 +1,39 @@
+---
+title: "Assignment 7"
+author: "Feiyu Zheng (fz114)"
+date: "2022/3/22"
+output:
+  pdf_document: default
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(tidytext)
+library(textdata)
+
+# suppress the warning message of dplyr
+options(dplyr.summarise.inform = F)
+```
+
+# Problem 1
+
+## 1. From the worldmeter webpage <https://www.worldmeters.info/coronavirus>, extract the country-wise COVID data. Treat it as a static HTML webpage. Create a tibble showing the country-wise data for the following four variables only: total cases, new cases, total deaths and new deaths. Clean the data to make them amenable to analysis.
+
+## 2. Identify the top ten countries reporting most new cases on the day you are analyzing the data.
+
+## 3. For these ten countries, generate a bar plot showing the number of new cases, arranged in order of magnitude.
+
+# Problem 2
+
+## 1. Obtain your free API fro https://spoonacular.com/food-api
+
+## 2. Use it to find out all Italian recipes available in the website that have carbohydrates not exceeding 30 grams. How many such recipes are there? Find the top ten having the lowest carbs. Present your output as a 10x3 tibble, where the column names are "Recipe" (the title of the recipe), "ID" (the ID of the recipe), and "Carbs" (the carb content).
+
+## 3. Find 10 types of Riesling wines whose price do not exceed \$50 and present your results as a 10x3 tibble, where the columns represent the title of the wine, its ID and its price.
