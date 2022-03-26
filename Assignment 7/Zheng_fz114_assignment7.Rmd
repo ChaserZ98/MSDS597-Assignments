@@ -17,6 +17,10 @@ library(lubridate)
 library(ggplot2)
 library(tidytext)
 library(textdata)
+library(rvest)
+library(httr)
+library(curl)
+library(jsonlite)
 
 # suppress the warning message of dplyr
 options(dplyr.summarise.inform = F)
@@ -24,16 +28,140 @@ options(dplyr.summarise.inform = F)
 
 # Problem 1
 
-## 1. From the worldmeter webpage <https://www.worldmeters.info/coronavirus>, extract the country-wise COVID data. Treat it as a static HTML webpage. Create a tibble showing the country-wise data for the following four variables only: total cases, new cases, total deaths and new deaths. Clean the data to make them amenable to analysis.
+## 1. From the worldometer webpage [https://www.worldometers.info/coronavirus](https://www.worldmeters.info/coronavirus){.uri}, extract the country-wise COVID data. Treat it as a static HTML webpage. Create a tibble showing the country-wise data for the following four variables only: total cases, new cases, total deaths and new deaths. Clean the data to make them amenable to analysis.
+
+### Download the table from worldometer webpage
+
+```{r}
+url <- "https://www.worldometers.info/coronavirus"
+country_covid_table <- url %>%
+  read_html() %>%
+  html_nodes("table") %>%
+  html_table(fill = TRUE) %>%
+  .[[1]]
+country_covid_table
+```
+
+### Clean the data in the table
+
+```{r}
+country_covid_table_cleaned <- country_covid_table %>%
+  filter(!is.na(`#`)) %>% # filter out rows that are not country
+  select(`Country,Other`, TotalCases, NewCases, TotalDeaths, NewDeaths) %>% # choose columns
+  rename(Country = `Country,Other`) %>%
+  mutate_at(c("TotalCases", "NewCases", "TotalDeaths", "NewDeaths"), ~as.integer(str_replace_all(., "[,+]", ""))) # clean the numeric data
+country_covid_table_cleaned
+```
 
 ## 2. Identify the top ten countries reporting most new cases on the day you are analyzing the data.
 
+```{r}
+top10NewCases <- country_covid_table_cleaned %>%
+  arrange(desc(NewCases)) %>%
+  head(10)
+top10NewCases
+```
+
 ## 3. For these ten countries, generate a bar plot showing the number of new cases, arranged in order of magnitude.
+
+```{r}
+top10NewCases %>%
+  ggplot(aes(reorder(Country, -NewCases), NewCases)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = function(x) format(x, scientific = F)) +
+  labs(
+    x = "Country",
+    y = "New Cases",
+    title = "Top 10 Countries with the Most New Cases") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
 # Problem 2
 
-## 1. Obtain your free API fro https://spoonacular.com/food-api
+## 1. Obtain your free API for <https://spoonacular.com/food-api>
+
+```{r}
+api_key <- "40d925facf66429f9d837537060df81d"
+print(paste("API Key: ", api_key, sep = ""))
+```
 
 ## 2. Use it to find out all Italian recipes available in the website that have carbohydrates not exceeding 30 grams. How many such recipes are there? Find the top ten having the lowest carbs. Present your output as a 10x3 tibble, where the column names are "Recipe" (the title of the recipe), "ID" (the ID of the recipe), and "Carbs" (the carb content).
 
+### Make API Request
+
+```{r}
+api_url <- paste(
+  "https://api.spoonacular.com/recipes/complexSearch",
+  "?apiKey=", api_key,
+  sep = ""
+)
+url <- paste(
+  api_url,
+  "&cuisine=", "italian",
+  "&includeNutrition=", "true",
+  "&maxCarbs=", "30",
+  "&sort=", "carbs",
+  "&sortDirection=", "asc",
+  sep = ""
+)
+
+json_result <- url %>%
+  curl() %>%
+  readLines(warn=F)
+```
+
+### Convert to 10x3 tibble
+
+```{r}
+
+result_t <- json_result %>%
+  fromJSON() %>%
+  .[[1]] %>%
+  as_tibble() %>%
+  mutate(
+    Recipe = title,
+    ID = id,
+    Carbs = bind_rows(.$nutrition$nutrients)$amount) %>%
+  select(Recipe, ID, Carbs)
+result_t
+```
+
 ## 3. Find 10 types of Riesling wines whose price do not exceed \$50 and present your results as a 10x3 tibble, where the columns represent the title of the wine, its ID and its price.
+
+### API Request
+
+```{r}
+api_url <- paste(
+  "https://api.spoonacular.com/food/wine/recommendation",
+  "?apiKey=", api_key,
+  sep=""
+)
+url <- paste(
+  api_url,
+  "&wine=", "riesling",
+  '&maxPrice=', "50",
+  "&number=", "10",
+  sep = ""
+)
+json_result <- url %>%
+  curl() %>%
+  readLines(warn=F)
+```
+
+### Convert to 10x3 tibble
+
+```{r}
+result_t <- json_result %>%
+  fromJSON() %>%
+  .[[1]] %>%
+  as_tibble() %>%
+  mutate(
+    Title = title,
+    ID = id,
+    Price = price
+  ) %>%
+  select(Title, ID, Price) %>%
+  mutate(Price = as.double(str_replace_all(.$Price, "[$]", "")))
+
+result_t
+```
