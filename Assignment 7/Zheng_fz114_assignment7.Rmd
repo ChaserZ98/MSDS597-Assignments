@@ -28,7 +28,7 @@ options(dplyr.summarise.inform = F)
 
 # Problem 1
 
-## 1. From the worldometer webpage [https://www.worldometers.info/coronavirus](https://www.worldmeters.info/coronavirus){.uri}, extract the country-wise COVID data. Treat it as a static HTML webpage. Create a tibble showing the country-wise data for the following four variables only: total cases, new cases, total deaths and new deaths. Clean the data to make them amenable to analysis.
+## 1. From the worldometer webpage [https://www.worldometers.info/coronavirus/](https://www.worldmeters.info/coronavirus/){.uri}, extract the country-wise COVID data. Treat it as a static HTML webpage. Create a tibble showing the country-wise data for the following four variables only: total cases, new cases, total deaths and new deaths. Clean the data to make them amenable to analysis.
 
 ### Download the table from worldometer webpage
 
@@ -57,8 +57,8 @@ country_covid_table_cleaned
 
 ```{r}
 top10NewCases <- country_covid_table_cleaned %>%
-  arrange(desc(NewCases)) %>%
-  head(10)
+  arrange(desc(NewCases)) %>% # sort in descending order of NewCases
+  head(10) # top 10
 top10NewCases
 ```
 
@@ -95,6 +95,7 @@ api_url <- paste(
   "?apiKey=", api_key,
   sep = ""
 )
+
 url <- paste(
   api_url,
   "&cuisine=", "italian",
@@ -105,6 +106,7 @@ url <- paste(
   sep = ""
 )
 
+# using api request to get json data
 json_result <- url %>%
   curl() %>%
   readLines(warn=F)
@@ -113,7 +115,7 @@ json_result <- url %>%
 ### Convert to 10x3 tibble
 
 ```{r}
-
+# convert json data to 10x3 tibble
 result_t <- json_result %>%
   fromJSON() %>%
   .[[1]] %>%
@@ -143,6 +145,8 @@ url <- paste(
   "&number=", "10",
   sep = ""
 )
+
+# using api request to get json data
 json_result <- url %>%
   curl() %>%
   readLines(warn=F)
@@ -151,6 +155,7 @@ json_result <- url %>%
 ### Convert to 10x3 tibble
 
 ```{r}
+# convert json data to 10x3 tibble
 result_t <- json_result %>%
   fromJSON() %>%
   .[[1]] %>%
