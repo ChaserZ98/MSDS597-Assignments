@@ -1,0 +1,83 @@
+---
+title: "Assignment 8"
+author: "Feiyu Zheng (fz114)"
+date: "2022/4/8"
+output:
+  pdf_document: default
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(tidytext)
+library(textdata)
+library(rvest)
+library(httr)
+library(curl)
+library(jsonlite)
+
+# suppress the warning message of dplyr
+options(dplyr.summarise.inform = F)
+```
+
+# Problem 1
+
+## For the gapminder data, perform the following operations, using the `tidy::nest()` function and and data frames with list-columns:
+
+## 1. Fit a separate linear model of `log10(gdpPercap)` on year for each country.
+
+## 2. Plot residuals against time, showing separate lines for each country in the same plot. Also, do this separately for each continent.
+
+## 3. Create a continent-wise Beeswarmplot for
+
+### (i) value of the estimated slope coefficient
+
+### (ii) value of the t-statistic (ratio of estimate and standard error). [Hint: you may need to revisit the materials on broom package]. Interpret the plots.
+
+## 4. Identify the countries that have estimated negative slopes and p-values less than 0.05. What is the interpretation of the linear model fit for these countries?
+
+## 5. Plot the year-wise `log10(gdpPercap)` for the countries identified in step 1.
+
+# Problem 2
+
+## In the lecture, we discussed fitting of a linear model of mpg versus wt from the mtcars data and demonstrated evaluation of its out-of-sample performance with a k-fold cross validation. Repeat this analysis for a non-linear model mpg \~ $\frac{k}{w}t+b$ , where k and b are model parameters and compare its performance with the linear model using an 8-fold cross validation.
+
+# Problem 3
+
+## 1. Download the data frames "Dataset1-Media-Example-NODES.csv" and "Dataset1-Media-Example-EDGSE.csv" from <https://kateto.net/network-visualization>, and create an igraph network object.
+
+## 2. Convert the igraph to a network object in the sna package
+
+## 3. Plot the network using separate colors for the nodes based on the vertex attribute media.type and make the size of the nodes proportional to the vertex attribute audience.size. [Hint: Use network:;get.vertex.attribute]
+
+## 4. Calculate the mean degree and density of the network using appropriate functions in the sna package.
+
+# Problem 4
+
+## Scrape the country-wise population data from <https://www.worldometers.info/world-population/population-by-country/>. Plot the population density ($P/Km^2$) obtained from this table on a country-wise choropleth map. Make sure to 
+
+### 1. Clean the data to make it compatible with the country-wise world choropleth map
+
+### 2. Maximize the overlap between the two data frames (the one obtained from the scraped data and the choropleth country data frame), i.e., if a country appears in both data frames, possibly with different names, it must be plotted
+
+### 3. List the countries, if any, in the scraped data frame that do not appear in the choropleth country data frame (after appropriate cleaning)
+
+### 4. List the countries, if any, in the choropleth country data frame that do not appear in the scraped data frame (after appropriate clearning)
+
+# Problem 5
+
+## Obtain 2015-2019 5-year aggregated ACS tract-wise data on NJ median household income and rental. Combine them into a single data frame.
+
+### 1. Plot the tract-wise rental against the median household income and comment.
+
+### 2. Fit a linear regression equation of rental against median household income and report the summary.
+
+### 3. Looking at the plot, suggest ways to improve the model fit. Fit the improved model and report the R2.
+
+### 4. Obtain the rental data for year=2019 (5-year aggregate from 2015-2019) and year=2014 (5-year aggregate from 2010-2014), and plot the percentage changes for each country in a column or bar diagram, in increasing or decreasing order of percentage increase.
