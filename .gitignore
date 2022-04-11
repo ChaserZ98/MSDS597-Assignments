@@ -40,3 +40,11 @@ vignettes/*.pdf
 
 # OS generated files
 *.DS_Store
+
+# repository ignored files
+Assignment 2/*.csv
+Assignment 2/*.tsv
+Assignment 8/Data files
+Assignment 8/*.csv
+Assignment 8/*.zip
+Assignment 8/Sunbelt 2021 R Network Visualization Workshop.*
