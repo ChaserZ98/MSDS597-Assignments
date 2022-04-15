@@ -370,6 +370,7 @@ country_population <- country_population %>%
 ### 3. List the countries, if any, in the scraped data frame that do not appear in the choropleth country data frame (after appropriate cleaning)
 
 ```{r}
+data(country.regions)
 setdiff(
   country.regions$region,
   country_population$`Country (or dependency)`
@@ -524,7 +525,7 @@ nj_median_household_income_and_rental %>%
 ```{r}
 nls <- nj_median_household_income_and_rental %>%
   lm(
-    estimate_medrental ~ log(estimate_medincome, 100),
+    estimate_medrental ~ log(estimate_medincome, 10),
     .,
     # start = list(a = 1, b = 1, c = 1)
   )
