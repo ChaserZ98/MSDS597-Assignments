@@ -210,7 +210,7 @@ print(paste("Linear model RSME mean: ", lm_rmse_mean, sep = ''))
 print(paste('Non-linear model RSME mean: ', nls_rmse_mean, sep = ''))
 ```
 
-Comparing the mean RSME of both models, we can see that linear model's mean RSME is less than non-linear model's one. This means that the linear model fits the performance of the linear model is better than non-linear model.
+Comparing the mean RSME of both models, we can see that linear model's mean RSME is less than non-linear model's one. This means that the performance of the linear model is better than non-linear model.
 
 # Problem 3
 
@@ -411,7 +411,7 @@ census_api_key("44ed2f559fc8ff1593dc792e28e54bd655f7f900", install = T, overwrit
 
 #### Obtain the data and combine both income and rental to one tibble
 
-```{r}
+```{r, results='hide'}
 nj_median_household_income_and_rental <- get_acs(
   geography = "tract",
   variables = c(medincome = "B19013_001", medrental = "B25064_001"),
@@ -424,6 +424,9 @@ nj_median_household_income_and_rental <- get_acs(
     names_from = variable,
     values_from = c(estimate, moe)
   )
+```
+
+```{r}
 nj_median_household_income_and_rental
 ```
 
@@ -527,7 +530,6 @@ nls <- nj_median_household_income_and_rental %>%
   lm(
     estimate_medrental ~ log(estimate_medincome, 10),
     .,
-    # start = list(a = 1, b = 1, c = 1)
   )
 nls %>%
   tidy %>%
@@ -548,7 +550,7 @@ nj_median_household_income_and_rental %>%
 
 #### Get the rental data from 2011-2015
 
-```{r}
+```{r, results='hide'}
 nj_median_rental_2011_2015 <- get_acs(
   geograph = "county",
   variables = c(medrental = "B25064_001"),
@@ -560,12 +562,15 @@ nj_median_rental_2011_2015 <- get_acs(
   rename(
     `2011-2015 Rental` = estimate
   )
+```
+
+```{r}
 nj_median_rental_2011_2015
 ```
 
 #### Get the rental data from 2016-2020
 
-```{r}
+```{r, results='hide'}
 nj_median_rental_2016_2020 <- get_acs(
   geograph = "county",
   variables = c(medrental = "B25064_001"),
@@ -577,6 +582,9 @@ nj_median_rental_2016_2020 <- get_acs(
   rename(
     `2016-2020 Rental` = estimate
   )
+```
+
+```{r}
 nj_median_rental_2016_2020
 ```
 
@@ -604,7 +612,6 @@ nj_median_rental
 #### Plot the graph
 
 ```{r}
-
 nj_median_rental %>%
   ggplot(
     aes(
